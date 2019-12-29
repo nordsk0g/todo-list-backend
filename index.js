@@ -1,5 +1,13 @@
 const express = require("express");
 const app = express();
+const bodyParser = require("body-parser");
+
+// Body parses JSON data from a request to JS object
+app.use(bodyParser.json());
+
+const cors = require("cors");
+
+app.use(cors());
 
 let todos = [
   {
@@ -37,6 +45,12 @@ let todos = [
     content: "Brainstorm more features",
     completed: false,
     date: '"2019-12-28T07:47:02.439Z"'
+  },
+  {
+    id: 7,
+    content: "Test",
+    completed: false,
+    date: '"2019-12-29T07:38:16.418Z"'
   }
 ];
 
@@ -55,12 +69,45 @@ app.get("/todos/:id", (request, response) => {
   todo ? response.json(todo) : response.status(404).end();
 });
 
-app.delete("todos/:id", (request, response) => {
+const generateId = () => {
+  const maxId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) : 0;
+
+  return maxId + 1;
+};
+
+app.post("/todos", (request, response) => {
+  const body = request.body;
+
+  if (!body.content) {
+    return response.status(400).json({
+      error: "content missing"
+    });
+  }
+
+  const todo = {
+    id: body.id,
+    content: body.content,
+    completed: body.completed || false,
+    date: body.date
+  };
+
+  todos = todos.concat(todo);
+
+  response.json(todo);
+});
+
+app.delete("/todos/:id", (request, response) => {
   const id = Number(request.params.id);
   todos = todos.filter(todo => todo.id !== id);
 
   response.status(204).end();
 });
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+
+app.use(unknownEndpoint);
 
 const PORT = 3001;
 app.listen(PORT, () => {
